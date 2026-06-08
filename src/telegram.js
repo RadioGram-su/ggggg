@@ -45,7 +45,9 @@ async function setCommands() {
   try {
     return await tg("setMyCommands", {
       commands: [
-        { command: "status", description: "Premium, пробный период, кошелёк" },
+        { command: "status", description: "Кошелёк и отслеживаемые ставки" },
+        { command: "sync", description: "Синхронизировать ставки с блокчейна" },
+        { command: "unlink", description: "Отвязать кошелёк" },
         { command: "watchlist", description: "Домены в мониторинге" },
         { command: "channel", description: "Канал Gram Radar DNS" },
         { command: "help", description: "Как подключить алерты" }

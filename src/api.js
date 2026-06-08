@@ -56,9 +56,25 @@ async function premiumStatus(wallet) {
   return api(`/api/premium/status?wallet=${encodeURIComponent(wallet)}`);
 }
 
+async function unlinkByChat(chatId) {
+  return api("/api/bot/unlink", {
+    method: "POST",
+    body: JSON.stringify({ chatId })
+  });
+}
+
+async function resyncBids(chatId) {
+  return api("/api/bot/resync-bids", {
+    method: "POST",
+    body: JSON.stringify({ chatId })
+  });
+}
+
 module.exports = {
   linkWithCode,
   statusByChat,
+  unlinkByChat,
+  resyncBids,
   listJobs,
   saveWatch,
   getDomain,

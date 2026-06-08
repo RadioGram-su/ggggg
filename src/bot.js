@@ -18,13 +18,17 @@ function welcomeText() {
     `3. Нажмите «Привязать @gramradardns_bot»\n\n` +
     `Или: <code>/link КОД</code>\n\n` +
     `📢 Канал: <a href="${CHANNEL}">@gramradardns</a>\n` +
-    `Команды: /status /watchlist /help /channel`
+    `Команды: /status /sync /unlink /watchlist /help /channel`
   );
 }
 
 async function linkByCode(chatId, code, username) {
   const out = await api.linkWithCode(code, chatId, username);
-  const syncNote = out.bidsSynced ? `\nСинхронизировано активных ставок: ${out.bidsSynced}` : "";
+  const syncNote = out.bidsSynced
+    ? `\nСинхронизировано аукционов: ${out.bidsSynced} (отслеживается: ${out.trackedAuctions || out.bidsSynced})`
+    : out.trackedAuctions
+      ? `\nОтслеживается аукционов: ${out.trackedAuctions}`
+      : "\n\nЕсли вы уже делали ставки — отправьте /sync после привязки.";
   await tg.send(
     chatId,
     `✅ Telegram привязан к кошельку\n\n` +
@@ -80,12 +84,59 @@ async function handleMessage(msg) {
         await tg.send(chatId, "Кошелёк не привязан. Откройте сайт и нажмите «Привязать Telegram».");
         return;
       }
+      const tracked = st.trackedAuctions || 0;
+      const trackedNote =
+        tracked > 0
+          ? `Отслеживается ставок: <b>${tracked}</b> аукцион(ов)`
+          : `⚠️ Ставки не найдены — отправьте <code>/sync</code> или сделайте ставку и снова /sync`;
       await tg.send(
         chatId,
         `✅ <b>Статус</b>\n\n` +
           `Кошелёк:\n<code>${tg.esc(st.wallet)}</code>\n\n` +
           `Алерты: <b>бесплатно</b>, активны\n` +
-          `Watchlist: ${st.settings?.watchlist?.length || 0} домен(ов)`
+          `${trackedNote}\n` +
+          `Watchlist: ${st.settings?.watchlist?.length || 0} домен(ов)\n\n` +
+          `Неверный кошелёк? <code>/unlink</code> → привяжите заново на сайте`
+      );
+    } catch (e) {
+      await tg.send(chatId, `❌ ${tg.esc(e.message)}`);
+    }
+    return;
+  }
+
+  if (text === "/unlink") {
+    try {
+      await api.unlinkByChat(chatId);
+      await tg.send(
+        chatId,
+        `✅ Привязка удалена.\n\n` +
+          `1. Откройте <a href="${SITE}/#sniper">gramradar.org</a>\n` +
+          `2. Подключите <b>нужный</b> TON-кошелёк\n` +
+          `3. Нажмите «Привязать @gramradardns_bot»\n\n` +
+          `Или: <code>/link КОД</code> с сайта`
+      );
+    } catch (e) {
+      await tg.send(chatId, `❌ ${tg.esc(e.message)}`);
+    }
+    return;
+  }
+
+  if (text === "/sync") {
+    try {
+      const st = await api.statusByChat(chatId);
+      if (!st.linked) {
+        await tg.send(chatId, "Кошелёк не привязан. Сначала привяжите кошелёк на сайте.");
+        return;
+      }
+      await tg.send(chatId, "⏳ Синхронизирую ваши ставки с блокчейна…");
+      const out = await api.resyncBids(chatId);
+      await tg.send(
+        chatId,
+        `✅ Синхронизация завершена\n\n` +
+          `Кошелёк: <code>${tg.esc(out.wallet)}</code>\n` +
+          `Найдено аукционов: ${out.bidsSynced || 0}\n` +
+          `Отслеживается ставок: <b>${out.trackedAuctions || 0}</b>\n\n` +
+          (out.trackedAuctions ? "Уведомления о перебивке включены." : "Ставок на активных аукционах не найдено.")
       );
     } catch (e) {
       await tg.send(chatId, `❌ ${tg.esc(e.message)}`);

@@ -20,7 +20,7 @@ function fmtLeft(sec) {
   return `${h}ч ${m}м`;
 }
 
-async function processDomain(wallet, slug, row, settings, chatId) {
+async function processDomain(wallet, walletNorm, slug, row, settings, chatId) {
   const info = await api.getDomain(slug);
   if (!info.success) return;
 
@@ -31,8 +31,7 @@ async function processDomain(wallet, slug, row, settings, chatId) {
   const url = info.url;
   const name = info.domain || `${slug}.gram`;
   const notified = row.notified || {};
-  const walletNorm = normAddr(wallet);
-  const leaderNorm = normAddr(leader);
+  const leaderNorm = info.auction?.leaderNorm || info.ownerNorm || normAddr(leader);
 
   if (leaderNorm === walletNorm && bid > 0) {
     if (bid > (row.myBidGrm || 0) + 0.0001) {
@@ -88,7 +87,7 @@ async function processDomain(wallet, slug, row, settings, chatId) {
   const ended = info.state === "taken" || left <= 0;
   if (ended && !notified.ended && !notified.won) {
     const buyer = info.ownerAddress || leader;
-    const buyerNorm = normAddr(buyer);
+    const buyerNorm = info.ownerNorm || normAddr(buyer);
     const won = buyerNorm === walletNorm && row.myBidGrm > 0;
 
     if (won && !notified.won) {
@@ -201,7 +200,8 @@ async function tick() {
   }
 
   for (const job of data.jobs || []) {
-    const { wallet, chatId, settings, watch } = job;
+    const { wallet, walletNorm, chatId, settings, watch } = job;
+    const wNorm = walletNorm || normAddr(wallet);
 
     const slugs = new Set(Object.keys(watch?.domains || {}));
     for (const s of settings?.watchlist || []) slugs.add(String(s).toLowerCase().replace(/\.gram$/, ""));
@@ -213,7 +213,7 @@ async function tick() {
       if (!state.domains) state.domains = {};
       if (!state.domains[slug]) state.domains[slug] = { notified: {} };
       try {
-        await processDomain(wallet, slug, state.domains[slug], settings || {}, chatId);
+        await processDomain(wallet, wNorm, slug, state.domains[slug], settings || {}, chatId);
         dirty = true;
       } catch (e) {
         console.warn("[watcher]", slug, e.message);
