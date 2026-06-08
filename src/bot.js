@@ -56,9 +56,11 @@ async function sendOutbidAlerts(chatId, wallet, items) {
 
 async function linkByCode(chatId, code, username) {
   const out = await api.linkWithCode(code, chatId, username);
-  const syncNote = out.trackedAuctions
-    ? `\nОтслеживается: <b>${out.trackedAuctions}</b> аукцион(ов)`
-    : "\n\nСтавки не найдены — отправьте <code>/sync</code> после ставки.";
+  const syncNote = out.syncPending
+    ? "\n\nСтавки подтягиваются в фоне — через минуту отправьте <code>/sync</code>."
+    : out.trackedAuctions
+      ? `\nОтслеживается: <b>${out.trackedAuctions}</b> аукцион(ов)`
+      : "\n\nСтавки не найдены — отправьте <code>/sync</code> после ставки.";
   await tg.send(
     chatId,
     `✅ Telegram привязан к кошельку\n\n` +
@@ -71,9 +73,6 @@ async function linkByCode(chatId, code, username) {
       `• продление 30 / 7 / 1 день и за 1 час\n\n` +
       `📢 <a href="${CHANNEL}">Подписаться на канал</a>`
   );
-  if (out.pendingOutbids?.length) {
-    await sendOutbidAlerts(chatId, out.wallet, out.pendingOutbids);
-  }
 }
 
 async function handleMessage(msg) {
@@ -167,10 +166,8 @@ async function handleMessage(msg) {
           `Отслеживается: <b>${out.trackedAuctions || 0}</b>\n\n` +
           `<b>Ставки:</b>\n${fmtTrackedList(out.trackedDomains)}`
       );
-      if (out.pendingOutbids?.length) {
-        await sendOutbidAlerts(chatId, out.wallet, out.pendingOutbids);
-      } else if (out.trackedAuctions) {
-        await tg.send(chatId, "Уведомления о перебивке активны.");
+      if (out.trackedAuctions) {
+        await tg.send(chatId, "Уведомления о перебивке активны — новые перебивки придут автоматически.");
       } else {
         await tg.send(chatId, "На активных аукционах ваших ставок не найдено.");
       }

@@ -13,9 +13,11 @@ function botHeaders(extra = {}) {
 
 async function api(path, opts = {}) {
   const url = `${SITE}${path}`;
+  const timeoutMs = opts.timeoutMs || 25000;
   const res = await fetch(url, {
     ...opts,
-    headers: botHeaders(opts.headers)
+    headers: botHeaders(opts.headers),
+    signal: AbortSignal.timeout(timeoutMs)
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `${res.status} ${path}`);
@@ -25,12 +27,13 @@ async function api(path, opts = {}) {
 async function linkWithCode(code, chatId, username) {
   return api("/api/bot/link-with-code", {
     method: "POST",
+    timeoutMs: 15000,
     body: JSON.stringify({ code, chatId, username: username || null })
   });
 }
 
 async function statusByChat(chatId) {
-  return api(`/api/bot/status-by-chat?chatId=${encodeURIComponent(chatId)}`);
+  return api(`/api/bot/status-by-chat?chatId=${encodeURIComponent(chatId)}`, { timeoutMs: 12000 });
 }
 
 async function listJobs() {
@@ -66,6 +69,7 @@ async function unlinkByChat(chatId) {
 async function resyncBids(chatId) {
   return api("/api/bot/resync-bids", {
     method: "POST",
+    timeoutMs: 90000,
     body: JSON.stringify({ chatId })
   });
 }
