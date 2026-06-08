@@ -4,8 +4,8 @@ const tg = require("./telegram");
 let offset = 0;
 let running = false;
 
-async function pollOnce() {
-  if (!tg.isEnabled()) return;
+async function pollLoop() {
+  if (!running || !tg.isEnabled()) return;
   try {
     const updates = await tg.tg("getUpdates", {
       offset,
@@ -17,8 +17,15 @@ async function pollOnce() {
       if (u.message) await bot.handleMessage(u.message);
     }
   } catch (e) {
-    console.warn("[poll]", e.message);
+    const msg = e.message || String(e);
+    console.warn("[poll]", msg);
+    if (/conflict/i.test(msg)) {
+      await new Promise((r) => setTimeout(r, 5000));
+    } else {
+      await new Promise((r) => setTimeout(r, 2000));
+    }
   }
+  setImmediate(pollLoop);
 }
 
 async function startPolling() {
@@ -38,8 +45,7 @@ async function startPolling() {
 
   await tg.setCommands();
   console.log("[poll] commands via getUpdates (bothost)");
-  pollOnce();
-  setInterval(pollOnce, 500);
+  pollLoop();
 }
 
 module.exports = { startPolling };
