@@ -46,17 +46,25 @@ async function send(chatId, text, extra = {}) {
   }
 }
 
+async function answerCallback(callbackQueryId, extra = {}) {
+  if (!callbackQueryId) return null;
+  try {
+    return await tg("answerCallbackQuery", { callback_query_id: callbackQueryId, ...extra });
+  } catch (e) {
+    console.warn("[tg] answerCallback failed:", e.message);
+    return null;
+  }
+}
+
 async function setCommands() {
   if (!API) return null;
   try {
     return await tg("setMyCommands", {
       commands: [
-        { command: "status", description: "Кошелёк и отслеживаемые ставки" },
-        { command: "sync", description: "Синхронизировать ставки с блокчейна" },
-        { command: "unlink", description: "Отвязать кошелёк" },
-        { command: "watchlist", description: "Домены в мониторинге" },
-        { command: "channel", description: "Канал Gram Radar DNS" },
-        { command: "help", description: "Как подключить алерты" }
+        { command: "start", description: "Главное меню с кнопками" },
+        { command: "status", description: "📊 Статус (или кнопка внизу)" },
+        { command: "sync", description: "🔄 Обновить ставки" },
+        { command: "help", description: "❓ Помощь" }
       ]
     });
   } catch (e) {
@@ -65,4 +73,4 @@ async function setCommands() {
   }
 }
 
-module.exports = { send, esc, fmtWallet, fmtWalletFull, tg, setCommands, isEnabled: () => !!API };
+module.exports = { send, esc, fmtWallet, fmtWalletFull, tg, answerCallback, setCommands, isEnabled: () => !!API };

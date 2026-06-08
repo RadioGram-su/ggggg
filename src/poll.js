@@ -10,11 +10,12 @@ async function pollLoop() {
     const updates = await tg.tg("getUpdates", {
       offset,
       timeout: 25,
-      allowed_updates: ["message"]
+      allowed_updates: ["message", "callback_query"]
     });
     for (const u of updates || []) {
       offset = u.update_id + 1;
-      if (u.message) await bot.handleMessage(u.message);
+      if (u.callback_query) await bot.handleCallback(u.callback_query);
+      else if (u.message) await bot.handleMessage(u.message);
     }
   } catch (e) {
     const msg = e.message || String(e);
