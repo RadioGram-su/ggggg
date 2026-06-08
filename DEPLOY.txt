@@ -1,31 +1,30 @@
-Gram Radar DNS Bot (@gramradardns_bot)
-======================================
+Gram Radar Bot — split architecture (fixes Conflict forever)
+============================================================
 
-Alerts are FREE — link wallet on site, no subscription.
+WHY Conflict happened:
+  bothost used getUpdates (polling). Two processes = Conflict.
 
-Deploy site files:
-  lib/bot-api.js
-  lib/auction-watcher.js
-  server.js
-  public/index.html
-  public/js/i18n.js
-  public/js/premium-ui.js
+NEW setup:
+  SITE  = /start /link via WEBHOOK
+  BOTHOST = alerts only (watcher), NO polling
 
-Deploy bot files:
-  src/bot.js
-  src/watcher.js
+=== SITE .env ===
 
-Then:
-  VPS: cd /var/www/gramradar && bash fix.sh
-  bothost: Restart bot
+TELEGRAM_BOT_TOKEN=from_BotFather
+TELEGRAM_WEBHOOK_URL=https://gramradar.org/api/telegram/webhook
+TELEGRAM_WEBHOOK_SECRET=random_32_chars
+TELEGRAM_AUTO_SET_WEBHOOK=1
+EXTERNAL_TELEGRAM_BOT=1
+BOT_API_SECRET=your_secret
 
-Env bothost:
-  TELEGRAM_BOT_TOKEN=
-  BOT_API_SECRET= (same as site .env)
-  GRAMRADAR_API=https://gramradar.org
-  SITE_URL=https://gramradar.org
+bash fix.sh on VPS
 
-Env site:
-  BOT_API_SECRET=
-  EXTERNAL_TELEGRAM_BOT=1
-  (no TELEGRAM_BOT_TOKEN on site)
+=== BOTHOST env ===
+
+BOT_API_SECRET=same
+TELEGRAM_BOT_TOKEN=same
+GRAMRADAR_API=https://gramradar.org
+SITE_URL=https://gramradar.org
+
+Start: node index.js
+Upload: index.js, package.json, src/
