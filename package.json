@@ -1,0 +1,17 @@
+{
+  "name": "gramradardns-bot",
+  "version": "1.0.0",
+  "description": "Gram Radar DNS Telegram bot @gramradardns_bot — wallet linking and auction alerts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "private": true
+}

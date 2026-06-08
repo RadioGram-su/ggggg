@@ -1,0 +1,31 @@
+Gram Radar DNS Bot (@gramradardns_bot)
+======================================
+
+Alerts are FREE — link wallet on site, no subscription.
+
+Deploy site files:
+  lib/bot-api.js
+  lib/auction-watcher.js
+  server.js
+  public/index.html
+  public/js/i18n.js
+  public/js/premium-ui.js
+
+Deploy bot files:
+  src/bot.js
+  src/watcher.js
+
+Then:
+  VPS: cd /var/www/gramradar && bash fix.sh
+  bothost: Restart bot
+
+Env bothost:
+  TELEGRAM_BOT_TOKEN=
+  BOT_API_SECRET= (same as site .env)
+  GRAMRADAR_API=https://gramradar.org
+  SITE_URL=https://gramradar.org
+
+Env site:
+  BOT_API_SECRET=
+  EXTERNAL_TELEGRAM_BOT=1
+  (no TELEGRAM_BOT_TOKEN on site)
