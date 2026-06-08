@@ -309,7 +309,7 @@ async function handleMessage(msg) {
   }
 
   if (text.startsWith("/link")) {
-    const code = text.split(/\s+/)[1]?.toUpperCase();
+    const code = (text.match(/^\/link\s*([A-Za-z0-9]+)$/i) || [])[1]?.toUpperCase();
     if (!code) {
       await showLinkHelp(chatId);
       return;
