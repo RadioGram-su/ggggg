@@ -22,17 +22,47 @@ function welcomeText() {
   );
 }
 
+function fmtTrackedList(items, limit = 8) {
+  if (!items?.length) return "нет активных ставок — отправьте <code>/sync</code>";
+  return items
+    .slice(0, limit)
+    .map((row) => {
+      const name = tg.esc(String(row.name || `${row.slug}.gram`).replace(/\.gram$/i, "") + ".gram");
+      if (row.outbid) {
+        return `• <b>${name}</b> — ваша ${row.myBidGrm.toFixed(2)} GRM, сейчас ${row.currentBidGrm.toFixed(2)} GRM ⚠️`;
+      }
+      if (row.isLeader) {
+        return `• <b>${name}</b> — лидер, ${row.myBidGrm.toFixed(2)} GRM ✅`;
+      }
+      return `• <b>${name}</b> — ваша ${row.myBidGrm.toFixed(2)} GRM`;
+    })
+    .join("\n");
+}
+
+async function sendOutbidAlerts(chatId, wallet, items) {
+  for (const row of items || []) {
+    await tg.send(
+      chatId,
+      `⚠️ <b>Ставку перебили</b>\n\n` +
+        `<b>${tg.esc(row.name || `${row.slug}.gram`)}</b>\n` +
+        `Ваш кошелёк: <code>${tg.fmtWalletFull(wallet)}</code>\n` +
+        `Ваша ставка: <b>${row.myBidGrm.toFixed(2)} GRM</b>\n` +
+        `Новая ставка: <b>${row.currentBidGrm.toFixed(2)} GRM</b>\n` +
+        `Лидер: <code>${tg.fmtWallet(row.leader)}</code>\n` +
+        `<a href="${row.url}">Открыть аукцион</a>`
+    );
+  }
+}
+
 async function linkByCode(chatId, code, username) {
   const out = await api.linkWithCode(code, chatId, username);
-  const syncNote = out.bidsSynced
-    ? `\nСинхронизировано аукционов: ${out.bidsSynced} (отслеживается: ${out.trackedAuctions || out.bidsSynced})`
-    : out.trackedAuctions
-      ? `\nОтслеживается аукционов: ${out.trackedAuctions}`
-      : "\n\nЕсли вы уже делали ставки — отправьте /sync после привязки.";
+  const syncNote = out.trackedAuctions
+    ? `\nОтслеживается: <b>${out.trackedAuctions}</b> аукцион(ов)`
+    : "\n\nСтавки не найдены — отправьте <code>/sync</code> после ставки.";
   await tg.send(
     chatId,
     `✅ Telegram привязан к кошельку\n\n` +
-      `<code>${tg.esc(out.wallet)}</code>\n\n` +
+      `<code>${tg.fmtWalletFull(out.wallet)}</code>\n\n` +
       `🔔 <b>Алерты бесплатные</b> — уже включены.${syncNote}\n\n` +
       `Уведомления:\n` +
       `• перебили ставку\n` +
@@ -41,6 +71,9 @@ async function linkByCode(chatId, code, username) {
       `• продление 30 / 7 / 1 день и за 1 час\n\n` +
       `📢 <a href="${CHANNEL}">Подписаться на канал</a>`
   );
+  if (out.pendingOutbids?.length) {
+    await sendOutbidAlerts(chatId, out.wallet, out.pendingOutbids);
+  }
 }
 
 async function handleMessage(msg) {
@@ -84,19 +117,15 @@ async function handleMessage(msg) {
         await tg.send(chatId, "Кошелёк не привязан. Откройте сайт и нажмите «Привязать Telegram».");
         return;
       }
-      const tracked = st.trackedAuctions || 0;
-      const trackedNote =
-        tracked > 0
-          ? `Отслеживается ставок: <b>${tracked}</b> аукцион(ов)`
-          : `⚠️ Ставки не найдены — отправьте <code>/sync</code> или сделайте ставку и снова /sync`;
       await tg.send(
         chatId,
         `✅ <b>Статус</b>\n\n` +
-          `Кошелёк:\n<code>${tg.esc(st.wallet)}</code>\n\n` +
+          `Кошелёк:\n<code>${tg.fmtWalletFull(st.wallet)}</code>\n\n` +
           `Алерты: <b>бесплатно</b>, активны\n` +
-          `${trackedNote}\n` +
-          `Watchlist: ${st.settings?.watchlist?.length || 0} домен(ов)\n\n` +
-          `Неверный кошелёк? <code>/unlink</code> → привяжите заново на сайте`
+          `Watchlist (вручную): ${st.settings?.watchlist?.length || 0} домен(ов)\n\n` +
+          `<b>Ваши ставки на аукционах:</b>\n${fmtTrackedList(st.trackedDomains)}\n\n` +
+          `Обновить: <code>/sync</code>\n` +
+          `Не тот кошелёк? <code>/unlink</code>`
       );
     } catch (e) {
       await tg.send(chatId, `❌ ${tg.esc(e.message)}`);
@@ -133,11 +162,18 @@ async function handleMessage(msg) {
       await tg.send(
         chatId,
         `✅ Синхронизация завершена\n\n` +
-          `Кошелёк: <code>${tg.esc(out.wallet)}</code>\n` +
-          `Найдено аукционов: ${out.bidsSynced || 0}\n` +
-          `Отслеживается ставок: <b>${out.trackedAuctions || 0}</b>\n\n` +
-          (out.trackedAuctions ? "Уведомления о перебивке включены." : "Ставок на активных аукционах не найдено.")
+          `Кошелёк: <code>${tg.fmtWalletFull(out.wallet)}</code>\n` +
+          `Обновлено аукционов: ${out.bidsSynced || 0}\n` +
+          `Отслеживается: <b>${out.trackedAuctions || 0}</b>\n\n` +
+          `<b>Ставки:</b>\n${fmtTrackedList(out.trackedDomains)}`
       );
+      if (out.pendingOutbids?.length) {
+        await sendOutbidAlerts(chatId, out.wallet, out.pendingOutbids);
+      } else if (out.trackedAuctions) {
+        await tg.send(chatId, "Уведомления о перебивке активны.");
+      } else {
+        await tg.send(chatId, "На активных аукционах ваших ставок не найдено.");
+      }
     } catch (e) {
       await tg.send(chatId, `❌ ${tg.esc(e.message)}`);
     }
@@ -151,13 +187,17 @@ async function handleMessage(msg) {
         await tg.send(chatId, "Кошелёк не привязан. Откройте сайт и нажмите «Привязать Telegram».");
         return;
       }
-      const list = st.settings?.watchlist?.length
+      const manual = st.settings?.watchlist?.length
         ? st.settings.watchlist
             .slice(0, 30)
             .map((s) => `• ${tg.esc(String(s).replace(/\.gram$/, ""))}.gram`)
             .join("\n")
-        : "Watchlist пуст — отслеживаются ваши ставки на аукционах автоматически.";
-      await tg.send(chatId, `<b>Watchlist</b>\n\n${list}`);
+        : "— пуст";
+      await tg.send(
+        chatId,
+        `<b>Watchlist</b> (добавляется на сайте вручную)\n\n${manual}\n\n` +
+          `<b>Авто-отслеживание ваших ставок:</b>\n${fmtTrackedList(st.trackedDomains, 15)}`
+      );
     } catch (e) {
       await tg.send(chatId, `❌ ${tg.esc(e.message)}`);
     }

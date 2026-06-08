@@ -8,8 +8,14 @@ function esc(s) {
 function fmtWallet(addr) {
   if (!addr) return "—";
   const a = String(addr);
+  if (a.startsWith("UQ") || a.startsWith("EQ") || a.startsWith("Uf") || a.startsWith("Ef")) return esc(a);
   if (a.length <= 16) return esc(a);
   return esc(`${a.slice(0, 6)}…${a.slice(-6)}`);
+}
+
+function fmtWalletFull(addr) {
+  if (!addr) return "—";
+  return esc(String(addr));
 }
 
 async function tg(method, body = {}) {
@@ -59,4 +65,4 @@ async function setCommands() {
   }
 }
 
-module.exports = { send, esc, fmtWallet, tg, setCommands, isEnabled: () => !!API };
+module.exports = { send, esc, fmtWallet, fmtWalletFull, tg, setCommands, isEnabled: () => !!API };
