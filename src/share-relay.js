@@ -11,7 +11,7 @@
 //   GAME_API_SECRET=<тот же секрет, что в backend/.env и у lustword>
 //   BOT_USERNAME=gramradardns_bot   (для кнопки «Войти» в карточке)
 
-const tg = require("./telegram");
+const telegram = require("./telegram");
 
 const clean = (s) => String(s || "").replace(/[^\x21-\x7E]/g, "");
 let LW_API = clean(process.env.LW_API || "https://gramradar.org/lw").replace(/\/+$/, "");
@@ -63,7 +63,7 @@ async function pollShares() {
     const { jobs } = await api("/share/pending");
     for (const job of jobs || []) {
       try {
-        const prepared = await tg("savePreparedInlineMessage", {
+        const prepared = await telegram.tg("savePreparedInlineMessage", {
           user_id: Number(job.userId),
           result: shareResultFor(job),
           allow_user_chats: true,
