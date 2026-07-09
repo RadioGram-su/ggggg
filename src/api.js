@@ -74,6 +74,14 @@ async function resyncBids(chatId) {
   });
 }
 
+async function getTrending(limit = 5) {
+  return api(`/api/trending?limit=${limit}&minBid=0&window=86400`);
+}
+
+async function getAuctions(limit = 20) {
+  return api(`/api/auctions?limit=${limit}`);
+}
+
 module.exports = {
   linkWithCode,
   statusByChat,
@@ -84,6 +92,8 @@ module.exports = {
   getDomain,
   getPortfolio,
   premiumStatus,
+  getTrending,
+  getAuctions,
   SITE,
   SECRET
 };

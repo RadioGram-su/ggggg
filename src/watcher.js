@@ -190,6 +190,82 @@ async function processRenewals(wallet, settings, watch, chatId) {
   return dirty;
 }
 
+const DIGEST_MS = Number(process.env.DIGEST_MS || 24 * 60 * 60 * 1000);
+
+async function processDailyDigest(wallet, settings, watch, chatId) {
+  const now = Date.now();
+  if (watch.lastDigestAt && now - watch.lastDigestAt < DIGEST_MS) return false;
+
+  const slugs = new Set(Object.keys(watch?.domains || {}));
+  for (const s of settings?.watchlist || []) slugs.add(String(s).toLowerCase().replace(/\.gram$/, ""));
+
+  const activeLines = [];
+  const outbidLines = [];
+  const renewLines = [];
+
+  for (const slug of slugs) {
+    if (!slug) continue;
+    const row = watch.domains?.[slug];
+    try {
+      const info = await api.getDomain(slug);
+      if (!info.success) continue;
+      const name = info.domain || `${slug}.gram`;
+      const bid = info.auction?.max_bid_amount || 0;
+      const end = info.auction?.auction_end_time || 0;
+      const left = end ? Math.max(0, end - Math.floor(Date.now() / 1000)) : 0;
+      if (info.state === "auction" || info.state === "waiting") {
+        activeLines.push(`• <b>${tg.esc(name)}</b> — ${bid.toFixed(2)} GRM · ${fmtLeft(left)}`);
+        if (row?.notified?.outbid) {
+          outbidLines.push(`• <b>${tg.esc(name)}</b> — перебили (ваша ${(row.myBidGrm || 0).toFixed(2)} GRM)`);
+        }
+      }
+    } catch (_) {}
+  }
+
+  try {
+    const portfolio = await api.getPortfolio(wallet);
+    const nowSec = Math.floor(Date.now() / 1000);
+    for (const domain of portfolio.domains || []) {
+      const expiry = Number(domain.expiry || 0);
+      if (!expiry) continue;
+      const daysLeft = Math.ceil((expiry - nowSec) / 86400);
+      if (daysLeft > 0 && daysLeft <= 7) {
+        renewLines.push(`• <b>${tg.esc(domain.name)}</b> — ${daysLeft} дн.`);
+      }
+    }
+  } catch (_) {}
+
+  let hotLines = [];
+  try {
+    const trending = await api.getTrending(5);
+    const watchSet = slugs;
+    const picked = (trending.items || [])
+      .filter((it) => watchSet.has(String(it.slug || "").toLowerCase()))
+      .slice(0, 3);
+    const pool = picked.length ? picked : (trending.items || []).slice(0, 3);
+    hotLines = pool.map((it) => {
+      const name = it.name || `${it.slug}.gram`;
+      return `• <b>${tg.esc(name)}</b> — ${Math.round(it.bid || 0)} GRM`;
+    });
+  } catch (_) {}
+
+  watch.lastDigestAt = now;
+
+  let msg =
+    `📊 <b>Gram Radar · дайджест</b>\n\n` +
+    `<b>Активные аукционы</b> (${activeLines.length})\n` +
+    (activeLines.length ? activeLines.slice(0, 6).join("\n") : "— нет") +
+    `\n\n`;
+
+  if (outbidLines.length) msg += `<b>Перебили</b>\n${outbidLines.slice(0, 4).join("\n")}\n\n`;
+  if (renewLines.length) msg += `<b>Продление ≤7 дн.</b>\n${renewLines.slice(0, 4).join("\n")}\n\n`;
+  if (hotLines.length) msg += `<b>🔥 Горячие лоты</b>\n${hotLines.join("\n")}\n\n`;
+  msg += `<a href="${SITE}/#analytics">Открыть Gram Radar</a>`;
+
+  await tg.send(chatId, msg);
+  return true;
+}
+
 async function tick() {
   let data;
   try {
@@ -224,6 +300,12 @@ async function tick() {
       if (await processRenewals(wallet, settings || {}, state, chatId)) dirty = true;
     } catch (e) {
       console.warn("[watcher] renewals:", e.message);
+    }
+
+    try {
+      if (await processDailyDigest(wallet, settings || {}, state, chatId)) dirty = true;
+    } catch (e) {
+      console.warn("[watcher] digest:", e.message);
     }
 
     if (dirty) {
