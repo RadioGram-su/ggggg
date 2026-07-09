@@ -37,7 +37,8 @@ async function api(path, body) {
 
 function shareResultFor(job) {
   const roomId = clean(String(job.roomId || ""));
-  const ref = job.ref ? "~" + clean(String(job.ref)) : "";
+  // ВНИМАНИЕ: в startapp Telegram допускает ТОЛЬКО [A-Za-z0-9_-]. Символ «~» (реф-код)
+  // раньше давал START_PARAM_INVALID и бесконечную загрузку — поэтому ref в deep-link НЕ шлём.
   if (job.game === "check") {
     // Подарочный чек: картинка = /card/<imgId> (клиентский рендер), кнопка → активация чека.
     const imgId = clean(String(job.imgId || ""));
@@ -50,6 +51,19 @@ function shareResultFor(job) {
       reply_markup: { inline_keyboard: [[{ text: "🎁 Открыть чек", url: "https://t.me/" + BOT_USERNAME + "?startapp=check_" + roomId }]] },
     };
   }
+  if (job.game === "card") {
+    // Карточка профиля: картинка = /card/<imgId>, кнопка ведёт в игру (реф-код если есть).
+    const imgId = clean(String(job.imgId || ""));
+    const img = LW_API + "/card/" + imgId;
+    const startapp = job.ref ? "ref_" + clean(String(job.ref)) : "play";
+    return {
+      type: "photo", id: "card" + Date.now(),
+      photo_url: img, thumb_url: img,
+      caption: "🎙️ <b>Я в LAST WORD — Gram Play!</b>\nЗдесь за последнее слово платят реальными GRM. Заходи, забери банк 👇",
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: [[{ text: "🎮 Играть в Gram Play", url: "https://t.me/" + BOT_USERNAME + "?startapp=" + startapp }]] },
+    };
+  }
   if (job.game === "seabattle") {
     const img = LW_API + "/card/room/seabattle/" + roomId;
     return {
@@ -57,7 +71,7 @@ function shareResultFor(job) {
       photo_url: img, thumb_url: img,
       caption: "⚓ <b>Тебя вызвали на Морской бой в Gram Play!</b>\nРасставь флот и потопи эскадру соперника 👇",
       parse_mode: "HTML",
-      reply_markup: { inline_keyboard: [[{ text: "⚓ Войти в бой", url: "https://t.me/" + BOT_USERNAME + "?startapp=searoom_" + roomId + ref }]] },
+      reply_markup: { inline_keyboard: [[{ text: "⚓ Войти в бой", url: "https://t.me/" + BOT_USERNAME + "?startapp=searoom_" + roomId }]] },
     };
   }
   const img = LW_API + "/card/room/minefield/" + roomId;
@@ -66,7 +80,7 @@ function shareResultFor(job) {
     photo_url: img, thumb_url: img,
     caption: "💣 <b>Тебя вызвали на Минное поле в Gram Play!</b>\nЗаходи в комнату — заминируй соперника или разминируйся сам 👇",
     parse_mode: "HTML",
-    reply_markup: { inline_keyboard: [[{ text: "💣 Войти в комнату", url: "https://t.me/" + BOT_USERNAME + "?startapp=mineroom_" + roomId + ref }]] },
+    reply_markup: { inline_keyboard: [[{ text: "💣 Войти в комнату", url: "https://t.me/" + BOT_USERNAME + "?startapp=mineroom_" + roomId }]] },
   };
 }
 
