@@ -38,6 +38,18 @@ async function api(path, body) {
 function shareResultFor(job) {
   const roomId = clean(String(job.roomId || ""));
   const ref = job.ref ? "~" + clean(String(job.ref)) : "";
+  if (job.game === "check") {
+    // Подарочный чек: картинка = /card/<imgId> (клиентский рендер), кнопка → активация чека.
+    const imgId = clean(String(job.imgId || ""));
+    const img = LW_API + "/card/" + imgId;
+    return {
+      type: "photo", id: "chk" + Date.now(),
+      photo_url: img, thumb_url: img,
+      caption: "🎁 <b>Тебе подарочный чек в Gram Play!</b>\nОткрой и забери приз 👇",
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: [[{ text: "🎁 Открыть чек", url: "https://t.me/" + BOT_USERNAME + "?startapp=check_" + roomId }]] },
+    };
+  }
   if (job.game === "seabattle") {
     const img = LW_API + "/card/room/seabattle/" + roomId;
     return {
