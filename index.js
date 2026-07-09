@@ -1,27 +1,28 @@
+// Gram Radar — бот «Призовой пул»: уведомления о розыгрышах в канал + запуск мини-аппа.
+// Старый функционал (алерты аукционов, привязка кошелька) отключён — только лотерея.
+
 try {
   require("dotenv").config();
 } catch (_) {}
 
-const poll = require("./src/poll");
-const watcher = require("./src/watcher");
-const api = require("./src/api");
+const lottery = require("./src/lottery");
+const lockWatch = require("./src/lock");
+const dnsEvents = require("./src/dns-events");
+const start = require("./src/start");
+const shareRelay = require("./src/share-relay");
+const tg = require("./src/telegram");
 
-function checkEnv() {
-  if (!api.SECRET) {
-    console.error("Set BOT_API_SECRET in env (same as gramradar.org .env)");
-    process.exit(1);
-  }
-  if (!process.env.TELEGRAM_BOT_TOKEN && !process.env.GRAMRADAR_BOT_TOKEN) {
-    console.error("Set TELEGRAM_BOT_TOKEN in env");
-    process.exit(1);
-  }
+if (!tg.isEnabled()) {
+  console.error("Set TELEGRAM_BOT_TOKEN in env");
+  process.exit(1);
 }
 
-checkEnv();
-console.log("Gram Radar bot (bothost) — commands + auction alerts");
-console.log(`API: ${api.SITE}`);
-poll.startPolling();
-watcher.startWatcher();
+console.log("Gram Radar — Призовой пул (lottery notifications + miniapp launch)");
+start.startCommands();   // /start → кнопка запуска пула
+lottery.startLottery();  // уведомления о розыгрышах в канал
+lockWatch.startLockWatch();  // уведомления о новых тайм-локах в @grmlocked
+dnsEvents.startDnsEvents();  // лента всех DNS-операций в канал (минт/ставки/листинги/продажи + локи)
+shareRelay.startShareRelay();  // Gram Play: готовит фото-карточки приглашений (prepared inline message)
 
 process.on("SIGINT", () => {
   console.log("bye");
