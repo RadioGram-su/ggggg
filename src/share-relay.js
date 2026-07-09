@@ -37,8 +37,11 @@ async function api(path, body) {
 
 function shareResultFor(job) {
   const roomId = clean(String(job.roomId || ""));
-  // ВНИМАНИЕ: в startapp Telegram допускает ТОЛЬКО [A-Za-z0-9_-]. Символ «~» (реф-код)
-  // раньше давал START_PARAM_INVALID и бесконечную загрузку — поэтому ref в deep-link НЕ шлём.
+  // ВНИМАНИЕ: в startapp Telegram допускает ТОЛЬКО [A-Za-z0-9_-]. Символ «~» ломал ссылку
+  // (START_PARAM_INVALID). Реф-код приглашающего кладём через «_»: roomId — это UUID без
+  // подчёркиваний, поэтому клиент однозначно делит `searoom_<uuid>_<ref>` → комната + реферал.
+  const refCode = clean(String(job.ref || "")).replace(/[^A-Za-z0-9]/g, "");
+  const refSuffix = refCode ? "_" + refCode : "";
   if (job.game === "check") {
     // Подарочный чек: картинка = /card/<imgId> (клиентский рендер), кнопка → активация чека.
     const imgId = clean(String(job.imgId || ""));
@@ -71,7 +74,7 @@ function shareResultFor(job) {
       photo_url: img, thumb_url: img,
       caption: "⚓ <b>Тебя вызвали на Морской бой в Gram Play!</b>\nРасставь флот и потопи эскадру соперника 👇",
       parse_mode: "HTML",
-      reply_markup: { inline_keyboard: [[{ text: "⚓ Войти в бой", url: "https://t.me/" + BOT_USERNAME + "?startapp=searoom_" + roomId }]] },
+      reply_markup: { inline_keyboard: [[{ text: "⚓ Войти в бой", url: "https://t.me/" + BOT_USERNAME + "?startapp=searoom_" + roomId + refSuffix }]] },
     };
   }
   const img = LW_API + "/card/room/minefield/" + roomId;
@@ -80,7 +83,7 @@ function shareResultFor(job) {
     photo_url: img, thumb_url: img,
     caption: "💣 <b>Тебя вызвали на Минное поле в Gram Play!</b>\nЗаходи в комнату — заминируй соперника или разминируйся сам 👇",
     parse_mode: "HTML",
-    reply_markup: { inline_keyboard: [[{ text: "💣 Войти в комнату", url: "https://t.me/" + BOT_USERNAME + "?startapp=mineroom_" + roomId }]] },
+    reply_markup: { inline_keyboard: [[{ text: "💣 Войти в комнату", url: "https://t.me/" + BOT_USERNAME + "?startapp=mineroom_" + roomId + refSuffix }]] },
   };
 }
 
