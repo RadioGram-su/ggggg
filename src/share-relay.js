@@ -108,6 +108,7 @@ function shareResultFor(job) {
 async function pollShares() {
   try {
     const { jobs } = await api("/share/pending");
+    if (jobs && jobs.length) console.log("[share] jobs:", jobs.map((j) => j.game + "/" + j.userId).join(", "));
     for (const job of jobs || []) {
       try {
         const prepared = await telegram.tg("savePreparedInlineMessage", {
@@ -118,9 +119,10 @@ async function pollShares() {
           allow_channel_chats: false,
           allow_bot_chats: false,
         });
+        console.log("[share] prepared OK:", job.game, "user", job.userId, "→", prepared && prepared.id);
         await api("/share/result", { token: job.token, id: prepared.id });
       } catch (e) {
-        console.warn("[share] prepare err:", e.message);
+        console.warn("[share] prepare err:", job.game, job.userId, "-", e.message);
         try { await api("/share/result", { token: job.token, error: String(e.message || "failed") }); } catch (_) {}
       }
     }
