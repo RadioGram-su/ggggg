@@ -75,7 +75,12 @@ function shareResultFor(job) {
     return {
       type: "photo", id: "pkr" + Date.now(),
       photo_url: img, thumb_url: img,
-      caption: "♠️ <b>Тебя зовут за покерный стол в Gram Play!</b>\nТехасский Холдем — заходи, садись и забери банк 👇",
+      caption: "♠️ <b>Тебя ждут за покерным столом!</b>\n\n"
+        + "🔥 Техасский Холдем на реальных GRM — прямо в Telegram\n"
+        + "💰 Дожми соперника и забери весь банк\n"
+        + "🆓 Новичкам — 2 000 фишек на тренировку, играй бесплатно\n"
+        + "⚡ Провабли-фейр: честность каждой раздачи проверяема\n\n"
+        + "👇 Место за столом свободно — успей сесть",
       parse_mode: "HTML",
       reply_markup: { inline_keyboard: [[{ text: "♠️ Сесть за стол", url: "https://t.me/" + BOT_USERNAME + "?startapp=poker_" + roomId + refSuffix }]] },
     };
@@ -122,10 +127,27 @@ async function pollShares() {
   } catch (_) { /* backend недоступен — молча ждём */ }
 }
 
+// Пуш-уведомления покера: забираем из очереди и шлём DM игрокам.
+async function pollNotify() {
+  try {
+    const { notifications } = await api("/notify/pending");
+    for (const n of notifications || []) {
+      try {
+        await telegram.tg("sendMessage", {
+          chat_id: Number(n.userId),
+          text: String(n.text || ""),
+          reply_markup: { inline_keyboard: [[{ text: "♠️ За стол", url: "https://t.me/" + BOT_USERNAME + "?startapp=" + (n.startapp || "play") }]] },
+        });
+      } catch (_) { /* юзер не открывал бота (403) и т.п. — пропускаем */ }
+    }
+  } catch (_) { /* backend недоступен */ }
+}
+
 function startShareRelay() {
   if (!SECRET) { console.warn("[share] GAME_API_SECRET не задан — релей карточек ВЫКЛЮЧЕН"); return; }
   console.log("[share] relay ON | LW_API =", LW_API, "| bot =", BOT_USERNAME);
   setInterval(pollShares, 1200);
+  setInterval(pollNotify, 5000);
 }
 
 module.exports = { startShareRelay };
