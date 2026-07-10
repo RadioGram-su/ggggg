@@ -111,6 +111,21 @@ async function pollShares() {
     if (jobs && jobs.length) console.log("[share] jobs:", jobs.map((j) => j.game + "/" + j.userId).join(", "));
     for (const job of jobs || []) {
       try {
+        // dm=true → клиент без tg.shareMessage: шлём готовую фото-карточку прямо в ЛС юзеру,
+        // он пересылает её одним касанием. Работает на ЛЮБОМ клиенте (в т.ч. Telegram Desktop).
+        if (job.dm) {
+          const r = shareResultFor(job);
+          await telegram.tg("sendPhoto", {
+            chat_id: Number(job.userId),
+            photo: r.photo_url,
+            caption: r.caption,
+            parse_mode: r.parse_mode,
+            reply_markup: r.reply_markup,
+          });
+          console.log("[share] DM photo sent:", job.game, "user", job.userId);
+          await api("/share/result", { token: job.token, id: "dm" });
+          continue;
+        }
         const prepared = await telegram.tg("savePreparedInlineMessage", {
           user_id: Number(job.userId),
           result: shareResultFor(job),
