@@ -67,6 +67,19 @@ function shareResultFor(job) {
       reply_markup: { inline_keyboard: [[{ text: "🎮 Играть в Gram Play", url: "https://t.me/" + BOT_USERNAME + "?startapp=" + startapp }]] },
     };
   }
+  if (job.game === "poker") {
+    // Приглашение за покерный стол: картинка = нарисованная карточка (/card/<imgId>),
+    // кнопка ведёт за стол с реф-суффиксом: poker_<tableId>_<ref>.
+    const imgId = clean(String(job.imgId || ""));
+    const img = LW_API + "/card/" + imgId;
+    return {
+      type: "photo", id: "pkr" + Date.now(),
+      photo_url: img, thumb_url: img,
+      caption: "♠️ <b>Тебя зовут за покерный стол в Gram Play!</b>\nТехасский Холдем — заходи, садись и забери банк 👇",
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: [[{ text: "♠️ Сесть за стол", url: "https://t.me/" + BOT_USERNAME + "?startapp=poker_" + roomId + refSuffix }]] },
+    };
+  }
   if (job.game === "seabattle") {
     const img = LW_API + "/card/room/seabattle/" + roomId;
     return {
