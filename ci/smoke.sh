@@ -54,7 +54,7 @@ start "artists"
 shot 09d_artists 3
 start "q:gjkyjxm"
 shot 09e_search_layout 3
-start "q:tape memori"
+start "q:polnoch"
 shot 09f_search_translit 3
 start "tracks"
 sleep 1
