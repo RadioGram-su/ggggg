@@ -140,10 +140,14 @@ fun HomeScreen() {
     val app = LocalApp.current
     val tracks by Library.tracks.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
-    val pager = rememberPagerState(initialPage = app.homeTab) { 5 }
+    val pager = rememberPagerState { 5 }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(app.homeTab) { if (pager.currentPage != app.homeTab) pager.animateScrollToPage(app.homeTab) }
-    LaunchedEffect(pager.currentPage) { app.homeTab = pager.currentPage }
+    LaunchedEffect(app.requestTab) {
+        app.requestTab?.let { pager.scrollToPage(it); app.requestTab = null }
+    }
+    LaunchedEffect(app.requestQuery) {
+        app.requestQuery?.let { query = it; app.requestQuery = null }
+    }
 
     Column(Modifier.fillMaxSize().grain(0.9f).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {

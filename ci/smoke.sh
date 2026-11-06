@@ -35,8 +35,9 @@ shot 03_player 5
 shot 03b_player_later 3
 start "8d,preset"
 shot 04_player_8d 4
-start "lyrics"
-shot 05_lyrics 5
+start "play,player,lyrics"
+shot 05_lyrics 6
+shot 05b_lyrics_later 6
 start "nolyrics,eq"
 shot 06_eq 4
 adb shell input swipe 540 1900 540 500 600
@@ -45,6 +46,18 @@ adb shell input swipe 540 1900 540 500 600
 shot 08_eq_bottom 3
 start "lists"
 shot 09_lists 4
+start "favs"
+shot 09b_favs 3
+start "albums"
+shot 09c_albums 3
+start "artists"
+shot 09d_artists 3
+start "q:gjkyjxm"
+shot 09e_search_layout 3
+start "q:tape memori"
+shot 09f_search_translit 3
+start "tracks"
+sleep 1
 start "settings"
 shot 10_settings 4
 start "driving"
@@ -58,7 +71,8 @@ shot 14_actions 4
 start "dismiss,player"
 shot 15_player_final 4
 adb shell cmd statusbar expand-notifications
-shot 16_notification 3
+sleep 1.5
+adb exec-out screencap -p > "$OUT/16_notification.png"
 adb shell cmd statusbar collapse
 
 adb shell dumpsys media_session > "$OUT/media_session.txt" 2>&1

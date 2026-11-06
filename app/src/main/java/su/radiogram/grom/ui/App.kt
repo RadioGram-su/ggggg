@@ -32,7 +32,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,7 +104,8 @@ class AppState(val conn: PlayerConn) {
     var sleepSheet by mutableStateOf(false)
     var queueSheet by mutableStateOf(false)
     var showLyrics by mutableStateOf(false)
-    var homeTab by mutableIntStateOf(0)
+    var requestTab by mutableStateOf<Int?>(null)
+    var requestQuery by mutableStateOf<String?>(null)
     val seenAtStart: Long = Store.lastSeenAdded
 
     val top: Route get() = stack.last()
@@ -330,7 +330,9 @@ fun GromRoot(conn: PlayerConn, intents: StateFlow<Intent?>) {
         if (ci != null && loaded) {
             i.removeExtra("ci")
             for (step in ci.split(',')) {
-                when (step.trim()) {
+                val st = step.trim()
+                if (st.startsWith("q:")) { app.playerOpen = false; app.stack.retainAll { it == Route.Home }; app.requestTab = 0; app.requestQuery = st.removePrefix("q:"); delay(400); continue }
+                when (st) {
                     "play" -> { conn.playList(Library.tracks.value); delay(1500) }
                     "fav" -> { Library.tracks.value.take(3).forEach { if (!Store.isFav(it.id)) Store.toggleFavorite(it.id) } }
                     "player" -> { app.stack.retainAll { it == Route.Home }; app.playerOpen = true }
@@ -341,8 +343,11 @@ fun GromRoot(conn: PlayerConn, intents: StateFlow<Intent?>) {
                     "settings" -> { app.playerOpen = false; app.push(Route.Settings) }
                     "driving" -> { app.playerOpen = false; app.push(Route.Driving) }
                     "home" -> { app.playerOpen = false; app.stack.retainAll { it == Route.Home } }
-                    "lists" -> { app.playerOpen = false; app.stack.retainAll { it == Route.Home }; app.homeTab = 2 }
-                    "tracks" -> { app.homeTab = 0 }
+                    "lists" -> { app.playerOpen = false; app.stack.retainAll { it == Route.Home }; app.requestTab = 2 }
+                    "favs" -> { app.playerOpen = false; app.stack.retainAll { it == Route.Home }; app.requestTab = 1 }
+                    "albums" -> { app.playerOpen = false; app.stack.retainAll { it == Route.Home }; app.requestTab = 3 }
+                    "artists" -> { app.playerOpen = false; app.stack.retainAll { it == Route.Home }; app.requestTab = 4 }
+                    "tracks" -> { app.requestTab = 0; app.requestQuery = "" }
                     "8d" -> Store.updateEq { it.copy(eightD = !it.eightD) }
                     "preset" -> su.radiogram.grom.audio.Presets.byId("punch")?.let { Store.applyPreset(it) }
                     "sleep" -> app.sleepSheet = true
