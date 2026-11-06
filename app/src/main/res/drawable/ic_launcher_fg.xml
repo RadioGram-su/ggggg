@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- dim scale -->
+    <path android:pathData="M37.03,70.97 A24,24 0 1,1 70.97,70.97"
+        android:strokeColor="#3A3833" android:strokeWidth="3.2" android:strokeLineCap="round" android:fillColor="#00000000" />
+    <!-- lit scale -->
+    <path android:pathData="M37.03,70.97 A24,24 0 1,1 70.97,70.97"
+        android:strokeColor="#FF5B1F" android:strokeWidth="3.2" android:strokeLineCap="round" android:fillColor="#00000000" />
+    <!-- knob body -->
+    <path android:pathData="M54,38 a16,16 0 1,0 0.001,0 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="38" android:endX="54" android:endY="70"
+                android:startColor="#4A4842" android:endColor="#1C1C1A" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M54,38 a16,16 0 1,0 0.001,0 z" android:strokeColor="#5E5B54" android:strokeWidth="0.8" android:fillColor="#00000000" />
+    <!-- pointer towards bottom-right (max) -->
+    <path android:pathData="M58.6,58.6 L63.9,63.9" android:strokeColor="#FF5B1F" android:strokeWidth="2.6" android:strokeLineCap="round" />
+</vector>
